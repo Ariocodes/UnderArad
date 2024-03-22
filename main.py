@@ -59,8 +59,7 @@ class Player:
         self.right = 0
         self.down = 0
         self.up = 0
-        self.collision = (self.x, self.y, self.x + self.width, self.y + self.height)
-
+        
     def display(self, image):
         """
             attrs:
@@ -70,15 +69,14 @@ class Player:
         self.vertical_movement = -self.up + self.down
         self.x += self.horizontal_movement
         self.y += self.vertical_movement
-        self.collision = (self.x, self.y, self.x + self.width, self.y + self.height)
         if self.horizontal_movement > 0:
             pass
         elif self.horizontal_movement < 0 or self.went_left: 
             # if the player is going towards the left side or it's last movement was towards the left side
             image = pygame.transform.flip(image, True, False)
-        if self.collision[0] < 0 or self.collision[2] > width:
+        if self.x < 0 or self.x + image.get_width() > width:
             self.x -= self.horizontal_movement
-        if self.collision[1] < 0 or self.collision[3] > height:
+        if self.y < 0 or self.y + image.get_height() > height:
             self.y -= self.vertical_movement
         screen.blit(image, (self.x, self.y))
     
@@ -93,14 +91,11 @@ class Wall:
         self.y = position[1]
         self.player_is_above = False
         self.player_is_at_left = False
-        self.collision = (self.x, self.y, self.x + self.wall_image.get_width(), self.y + self.wall_image.get_height())
-                    #       left    top         right                               bottom
-    def is_colliding(self, player_position:tuple):
-        # player_object.right = 0
-        # player_object.horizontal = 0
-        pass
         
     def display(self, player_obj):
+        """
+            This is the whole wall's collision system. (It was so fucking hard to achieve so I deserve an applause)
+        """
         if player_obj.y + player_obj.height < self.y + self.wall_image.get_height()/2:
             self.player_is_above = True
         else:
