@@ -9,7 +9,7 @@ pygame.display.set_caption("UnderArad")
 font = pygame.font.Font('freesansbold.ttf', 32)
 
 try:
-    icon = pygame.image.load("images/icon.jpg")
+    icon = pygame.image.load("images/icon.jpg").convert()
 except:
     raise FileNotFoundError("File: \"icon.jpg\" not found!")
 else:
@@ -17,7 +17,7 @@ else:
 
 wallpaper = pygame.display.set_mode((width, height))
 try:
-    picture = pygame.image.load("images/background.jpeg")
+    picture = pygame.image.load("images/background.jpeg").convert()
 except:
     raise FileNotFoundError("File: \"background.jpeg\" not found!")
 else:
@@ -26,9 +26,14 @@ else:
     rect = rect.move((0, 0))
 
 try:
-    player_image = pygame.image.load("images/arad_face_default.png")
+    player_image = pygame.image.load("images/arad_default.png")
 except:
-    raise FileNotFoundError("File: \"arad_face_default.png\" not found!")
+    raise FileNotFoundError("File: \"arad_default.png\" not found!")
+
+try:
+    wall_image = pygame.image.load("images/wall1.png").convert()
+except:
+    raise FileNotFoundError("File: \"wall1.png\" not found!")
 
 
 class Player:
@@ -40,9 +45,12 @@ class Player:
                 horizontal_movement: total movement in the X axis (left + right)
                 verticaal_movement: total movement in the Y axis (up + down)
         """
+        self.width = player_image.get_width()
+        self.height = player_image.get_height()
         self.health = 100
         self.name = inName
         self.went_left = False
+        self.speed = 3
         self.x = 100
         self.y = 100
         self.horizontal_movement = 0
@@ -51,26 +59,70 @@ class Player:
         self.right = 0
         self.down = 0
         self.up = 0
+        self.collision = (self.x, self.y, self.x + self.width, self.y + self.height)
 
     def display(self, image):
         """
             attrs:
                 image : player's image
         """
-        self.horizontal_movement = self.left + self.right
-        self.vertical_movement = self.up + self.down
+        self.horizontal_movement = -self.left + self.right
+        self.vertical_movement = -self.up + self.down
         self.x += self.horizontal_movement
         self.y += self.vertical_movement
+        self.collision = (self.x, self.y, self.x + self.width, self.y + self.height)
         if self.horizontal_movement > 0:
             pass
         elif self.horizontal_movement < 0 or self.went_left: 
             # if the player is going towards the left side or it's last movement was towards the left side
             image = pygame.transform.flip(image, True, False)
-        if self.x < 0 or self.x + image.get_width() > width:
+        if self.collision[0] < 0 or self.collision[2] > width:
             self.x -= self.horizontal_movement
-        if self.y < 0 or self.y + image.get_height() > height:
+        if self.collision[1] < 0 or self.collision[3] > height:
             self.y -= self.vertical_movement
         screen.blit(image, (self.x, self.y))
+    
+    def e_button_action(self):
+        pass
+
+
+class Wall:
+    def __init__(self, image_file_location, position:tuple):
+        self.wall_image = image_file_location
+        self.x = position[0]
+        self.y = position[1]
+        self.player_is_above = False
+        self.player_is_at_left = False
+        self.collision = (self.x, self.y, self.x + self.wall_image.get_width(), self.y + self.wall_image.get_height())
+                    #       left    top         right                               bottom
+    def is_colliding(self, player_position:tuple):
+        # player_object.right = 0
+        # player_object.horizontal = 0
+        pass
+        
+    def display(self, player_obj):
+        if player_obj.y + player_obj.height < self.y + self.wall_image.get_height()/2:
+            self.player_is_above = True
+        else:
+            self.player_is_above = False
+        if player_obj.x + player_obj.width < self.y + self.wall_image.get_width()/2:
+            self.player_is_at_left = True
+        else:
+            self.player_is_at_left = False
+
+        if player_obj.x + player_obj.width/2 > self.x + 5 and player_obj.x + player_obj.width/2 + 5 < self.x + self.wall_image.get_width():
+            if player_obj.y + player_obj.height > self.y and player_obj.y + player_obj.height < self.y + self.wall_image.get_height():
+                if self.player_is_above:
+                    player_obj.y -= player_obj.speed
+                if not self.player_is_above:
+                    player_obj.y += player_obj.speed
+        if player_obj.y + player_obj.height > self.y + 5 and player_obj.y + player_obj.height + 5 < self.y + self.wall_image.get_height():
+            if player_obj.x + player_obj.width/2 > self.x and player_obj.x + player_obj.width/2 < self.x + self.wall_image.get_width():
+                if self.player_is_at_left:
+                    player_obj.x -= player_obj.speed
+                if not self.player_is_at_left:
+                    player_obj.x += player_obj.speed
+        screen.blit(self.wall_image, (self.x, self.y))
 
 
 class Button:
@@ -82,8 +134,8 @@ class Button:
                 hover_image_file_location : hovered button's image
         """
         self.file_loc = image_file_location
-        self.hover_image = pygame.image.load(hover_image_file_location)
-        self.button_image = pygame.image.load(image_file_location)
+        self.hover_image = pygame.image.load(hover_image_file_location).convert()
+        self.button_image = pygame.image.load(image_file_location).convert()
         # the center of the button is placed at the given location, not the top left corner of it.
         
     def blit_button(self, location):
@@ -145,7 +197,6 @@ def main_menu():
     return decision
 
 
-
 def options():
     at_options = True
     while at_options:
@@ -165,9 +216,11 @@ def gameplay():
     running = True
     player_name = "Arad"
     player = Player(player_name)
+    wall1 = Wall(wall_image, (500, 500))
     while running:
         screen.fill((194, 8, 6)) # default color
         wallpaper.blit(picture, rect)
+        wall1.display(player)
         player.display(player_image)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -176,15 +229,15 @@ def gameplay():
                 if event.key == pygame.K_ESCAPE:
                     running = False
                 if event.key == pygame.K_a:
-                    player.left = -2
+                    player.left = player.speed
                     player.went_left = True
                 if event.key == pygame.K_d:
-                    player.right = 2
+                    player.right = player.speed
                     player.went_left = False
                 if event.key == pygame.K_w:
-                    player.up = -2
+                    player.up = player.speed
                 if event.key == pygame.K_s:
-                    player.down = 2
+                    player.down = player.speed
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_a:
